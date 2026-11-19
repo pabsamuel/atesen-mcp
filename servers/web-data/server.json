@@ -10,26 +10,16 @@
     "source": "github",
     "subfolder": "servers/web-data"
   },
-  "packages": [
+  "remotes": [
     {
-      "registryType": "npm",
-      "identifier": "atesen-web-data-mcp",
-      "version": "0.1.0",
-      "transport": {
-        "type": "stdio"
-      },
-      "environmentVariables": [
+      "type": "streamable-http",
+      "url": "https://mcp.apify.com?tools=atesen-software/url-to-markdown-rag,atesen-software/llm-dataset-builder,atesen-software/website-tech-stack-detector,atesen-software/domain-whois-rdap-lookup,atesen-software/website-seo-audit,atesen-software/rss-feed-reader,atesen-software/hacker-news-search-comments,atesen-software/huggingface-model-intel,atesen-software/app-store-scraper,atesen-software/app-store-reviews-scraper,atesen-software/google-play-reviews-scraper,atesen-software/shopify-store-products-scraper",
+      "headers": [
         {
-          "name": "APIFY_TOKEN",
-          "description": "Your own Apify API token. Actor runs are billed by Apify to your account.",
+          "name": "Authorization",
+          "description": "Bearer <your Apify API token>. Actor runs are billed by Apify to your own account.",
           "isRequired": true,
           "isSecret": true
-        },
-        {
-          "name": "ATESEN_MAX_CHARGE_USD",
-          "description": "Maximum Apify charge per tool call in USD (default 0.25).",
-          "isRequired": false,
-          "default": "0.25"
         }
       ]
     }

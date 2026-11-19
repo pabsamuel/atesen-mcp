@@ -10,26 +10,16 @@
     "source": "github",
     "subfolder": "servers/company-data"
   },
-  "packages": [
+  "remotes": [
     {
-      "registryType": "npm",
-      "identifier": "atesen-company-data-mcp",
-      "version": "0.1.0",
-      "transport": {
-        "type": "stdio"
-      },
-      "environmentVariables": [
+      "type": "streamable-http",
+      "url": "https://mcp.apify.com?tools=atesen-software/french-company-enrichment-sirene,atesen-software/french-company-financials-ratios,atesen-software/french-website-siren-mentions-legales,atesen-software/sec-edgar-company-data,atesen-software/trademark-phrase-risk-check,atesen-software/website-email-contact-finder,atesen-software/career-site-jobs-api,atesen-software/workday-jobs-scraper",
+      "headers": [
         {
-          "name": "APIFY_TOKEN",
-          "description": "Your own Apify API token. Actor runs are billed by Apify to your account.",
+          "name": "Authorization",
+          "description": "Bearer <your Apify API token>. Actor runs are billed by Apify to your own account.",
           "isRequired": true,
           "isSecret": true
-        },
-        {
-          "name": "ATESEN_MAX_CHARGE_USD",
-          "description": "Maximum Apify charge per tool call in USD (default 0.25).",
-          "isRequired": false,
-          "default": "0.25"
         }
       ]
     }
