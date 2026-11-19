@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "atesen-company-data": {
+      "type": "http",
+      "url": "https://mcp.apify.com?tools=atesen-software/french-company-enrichment-sirene,atesen-software/french-company-financials-ratios,atesen-software/french-website-siren-mentions-legales,atesen-software/sec-edgar-company-data,atesen-software/trademark-phrase-risk-check,atesen-software/website-email-contact-finder,atesen-software/career-site-jobs-api,atesen-software/workday-jobs-scraper",
+      "headers": {
+        "Authorization": "Bearer ${user_config.APIFY_TOKEN}"
+      }
+    },
+    "atesen-web-data": {
+      "type": "http",
+      "url": "https://mcp.apify.com?tools=atesen-software/url-to-markdown-rag,atesen-software/llm-dataset-builder,atesen-software/website-tech-stack-detector,atesen-software/domain-whois-rdap-lookup,atesen-software/website-seo-audit,atesen-software/rss-feed-reader,atesen-software/hacker-news-search-comments,atesen-software/huggingface-model-intel,atesen-software/app-store-scraper,atesen-software/app-store-reviews-scraper,atesen-software/google-play-reviews-scraper,atesen-software/shopify-store-products-scraper",
+      "headers": {
+        "Authorization": "Bearer ${user_config.APIFY_TOKEN}"
+      }
+    }
+  }
+}

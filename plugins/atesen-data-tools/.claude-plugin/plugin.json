@@ -1,0 +1,23 @@
+{
+  "name": "atesen-data-tools",
+  "displayName": "Atesen Data Tools",
+  "version": "0.1.0",
+  "description": "Public company, trademark, job-posting, website and app-store data for Claude, served by Atesen Software's Apify Actors through Apify's hosted MCP endpoint.",
+  "author": {
+    "name": "Atesen Software",
+    "url": "https://atesensoftware.com"
+  },
+  "homepage": "https://atesensoftware.com",
+  "repository": "https://github.com/pabsamuel/atesen-mcp",
+  "license": "MIT",
+  "keywords": ["company-data", "sirene", "sec-edgar", "trademark", "seo-audit", "app-store", "apify"],
+  "userConfig": {
+    "APIFY_TOKEN": {
+      "type": "string",
+      "title": "Apify API token",
+      "description": "Your own Apify API token (Apify console > Settings > API & Integrations). Actor runs are billed by Apify to your account.",
+      "sensitive": true,
+      "required": true
+    }
+  }
+}
