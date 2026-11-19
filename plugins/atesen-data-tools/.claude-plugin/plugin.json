@@ -10,6 +10,8 @@
   "homepage": "https://atesensoftware.com",
   "repository": "https://github.com/pabsamuel/atesen-mcp",
   "license": "MIT",
+  "icon": "./icon.png",
+  "privacyPolicyUrl": "https://atesensoftware.com/privacy/",
   "keywords": ["company-data", "sirene", "sec-edgar", "trademark", "seo-audit", "app-store", "apify"],
   "userConfig": {
     "APIFY_TOKEN": {

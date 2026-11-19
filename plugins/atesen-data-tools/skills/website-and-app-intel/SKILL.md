@@ -1,6 +1,6 @@
 ---
 name: website-and-app-intel
-description: Audit and analyse public websites and apps: convert pages to Markdown, detect a site's tech stack, check domain registration, run an SEO and broken-link crawl, read RSS feeds, search Hacker News, look up App Store and Google Play apps and reviews, inspect Shopify catalogs and Hugging Face models. Use for competitor, market and site-health questions.
+description: "Audit and analyse public websites and apps: convert pages to Markdown, detect a site's tech stack, check domain registration, run an SEO and broken-link crawl, read RSS feeds, search Hacker News, look up App Store and Google Play apps and reviews, inspect Shopify catalogs and Hugging Face models. Use for competitor, market and site-health questions."
 ---
 
 # Website and app intelligence from public data

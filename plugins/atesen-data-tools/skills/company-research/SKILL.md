@@ -1,6 +1,6 @@
 ---
 name: company-research
-description: Research a company from public sources: French SIRENE registry and financials, SEC EDGAR filings, website contact details, public job postings and trademark risk for a name or slogan. Use when the user asks who a company is, how it is doing, how to reach it, whether it is hiring, or whether a brand phrase is already registered.
+description: "Research a company from public sources: French SIRENE registry and financials, SEC EDGAR filings, website contact details, public job postings and trademark risk for a name or slogan. Use when the user asks who a company is, how it is doing, how to reach it, whether it is hiring, or whether a brand phrase is already registered."
 ---
 
 # Company research with public data
