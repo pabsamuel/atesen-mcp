@@ -1,0 +1,743 @@
+{
+ "serverName": "atesen-company-data-mcp",
+ "title": "Atesen Company and Jobs Data",
+ "version": "0.1.0",
+ "instructions": "French company registry data, US SEC filings, trademark phrase checks, website contacts and public job postings. Each tool runs a public Apify Actor on the caller's own Apify account (APIFY_TOKEN). Start with a small result limit; Apify bills per result.",
+ "tools": [
+  {
+   "name": "french_company_enrichment_sirene",
+   "title": "French Company SIRENE API",
+   "actorId": "BExiBkk3fybp1rJmd",
+   "description": "Look up French company data by business identifiers using SIRENE. Runs the public Apify Actor atesen-software/french-company-enrichment-sirene on YOUR Apify account; Apify bills up to $0.004 per result (pay-per-event). Set a small result limit first.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "mode": {
+      "type": "string",
+      "description": "Lookup existing identifiers/names, or discover companies with activity and geographic filters.",
+      "default": "lookup",
+      "enum": [
+       "lookup",
+       "search"
+      ]
+     },
+     "identifiers": {
+      "type": "array",
+      "description": "One per line. 9-digit SIREN, 14-digit SIRET or French VAT number (FR + 11 characters). Spaces, dots and dashes are ignored. Use 'Bulk edit' to paste a whole column from Excel or Google Sheets.",
+      "items": {
+       "type": "string"
+      }
+     },
+     "csvText": {
+      "type": "string",
+      "description": "Lookup mode only. Paste only identifier columns with siren and/or siret headers. Comma or semicolon separated; keep IDs as literal digits, including leading zeros. No file uploads or URLs. Maximum 1 MiB UTF-8, 1,000 data records and 1,000 combined input items including blank cells. Other columns are rejected. Input is ",
+      "default": "",
+      "maxLength": 1048576
+     },
+     "companyNames": {
+      "type": "array",
+      "description": "One company name per line. Optionally add a postal code or department after a vertical bar to narrow the search, e.g. 'Decathlon | 59' or 'Boulangeries Paul | 59700'. Each row gets a match confidence score.",
+      "items": {
+       "type": "string"
+      }
+     },
+     "minConfidence": {
+      "type": "integer",
+      "description": "Name matches below this score are returned as 'low_confidence' with the candidate SIRENs listed, and are not charged. Lower it to accept fuzzier matches.",
+      "default": 60,
+      "minimum": 0,
+      "maximum": 100
+     },
+     "onlyActiveCompanies": {
+      "type": "boolean",
+      "description": "Name matching and search mode: return active legal units only. Does not filter exact identifier lookups or guarantee each branch is open.",
+      "default": false
+     },
+     "includeFinances": {
+      "type": "boolean",
+      "description": "Latest published revenue (chiffre d'affaires) and net income, when the company filed public accounts. Many small companies have none.",
+      "default": true
+     },
+     "includeDirectors": {
+      "type": "boolean",
+      "description": "Adds company officers from the national business register (RNE). This is personal data: only enable it if you have a lawful basis under GDPR. Birth dates and nationalities are never output.",
+      "default": false
+     },
+     "validateOnly": {
+      "type": "boolean",
+      "description": "Checks every identifier (check digits, VAT key), removes duplicates and shows what would be looked up — without calling the registry and without any charge.",
+      "default": false
+     },
+     "checkVat": {
+      "type": "boolean",
+      "description": "Check each company's intra-EU VAT number against the European Commission VIES service. Adds vatValid, vatViesName, vatViesAddress, vatCheckedAt and vatCheckError. Free add-on; slower (about 2 checks per second).",
+      "default": false
+     },
+     "checkBodacc": {
+      "type": "boolean",
+      "description": "Look up insolvency notices (procédures collectives: redressement judiciaire, liquidation judiciaire, sauvegarde) published in the BODACC for each company. Adds bodaccHasProceedings, bodaccProcedure, bodaccJudgment, bodaccJudgmentDate, bodaccPublicationDate, bodaccTribunal, bodaccUrl and bodaccNoticesCount. Free add-on.",
+      "default": false
+     },
+     "maxRequestsPerSecond": {
+      "type": "integer",
+      "description": "Upper bound for calls to the government API (its official limit is 7/s per IP, and it throttles harder under load). The Actor slows down automatically when throttled; you rarely need to change this.",
+      "default": 2,
+      "minimum": 1,
+      "maximum": 7
+     },
+     "searchQuery": {
+      "type": "string",
+      "description": "Optional company name in search mode. Use identifiers for numeric SIREN/SIRET lookups."
+     },
+     "nafCode": {
+      "type": "string",
+      "description": "Search mode: exact legal-unit activity code, for example 62.01Z. This filters the company activity, not each branch activity."
+     },
+     "region": {
+      "type": "string",
+      "description": "Search mode: two-digit INSEE region, for example 11 (Ile-de-France). Matches establishments; company output may have its head office elsewhere."
+     },
+     "department": {
+      "type": "string",
+      "description": "Search mode: department such as 75, 59, 2A or 971."
+     },
+     "postalCode": {
+      "type": "string",
+      "description": "Search mode: exact five-digit establishment postal code."
+     },
+     "outputMode": {
+      "type": "string",
+      "description": "Search mode: one row per company head office, or one per matching establishment with isHeadOffice and headOfficeSiret. API search windows apply.",
+      "default": "companies",
+      "enum": [
+       "companies",
+       "establishments"
+      ]
+     },
+     "maxResults": {
+      "type": "integer",
+      "description": "Search mode: maximum delivered rows. Lower this for a small first run. Also bounded by the run spending limit.",
+      "default": 100,
+      "minimum": 1,
+      "maximum": 1000
+     }
+    },
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "french_company_financials_ratios",
+   "title": "French Company Financials API",
+   "actorId": "DXoOAIuV4kr3uhH1H",
+   "description": "Retrieve French company financial statements and ratios by SIREN. Runs the public Apify Actor atesen-software/french-company-financials-ratios on YOUR Apify account; Apify bills up to $0.01 per result (pay-per-event). Set a small result limit first.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "sirens": {
+      "type": "array",
+      "description": "One per line. 9-digit SIREN, 14-digit SIRET (first 9 digits are used) or French VAT number (FRxx + SIREN). Spaces and dots are ignored. Use 'Bulk edit' to paste a whole column.",
+      "items": {
+       "type": "string"
+      }
+     },
+     "years": {
+      "type": "array",
+      "description": "Only return accounts whose fiscal year ends in these years, e.g. 2023, 2024. Leave empty for every year available.",
+      "items": {
+       "type": "string"
+      }
+     },
+     "latestYearOnly": {
+      "type": "boolean",
+      "description": "Return only the most recent filed year per company (one or two rows: corporate and, if any, consolidated accounts).",
+      "default": false
+     },
+     "accountsTypes": {
+      "type": "array",
+      "description": "C = complete corporate accounts, S = simplified corporate accounts (small companies), K = consolidated group accounts.",
+      "default": [
+       "C",
+       "S",
+       "K"
+      ],
+      "items": {
+       "type": "string",
+       "enum": [
+        "C",
+        "S",
+        "K"
+       ]
+      }
+     },
+     "includeCompanyIdentity": {
+      "type": "boolean",
+      "description": "Looks up each SIREN in the official Recherche d'entreprises API (free) to add the legal name, NAF code, size category and head-office city.",
+      "default": true
+     },
+     "maxCompanies": {
+      "type": "integer",
+      "description": "Stop after this many valid SIRENs. Useful for a quick test.",
+      "default": 0,
+      "minimum": 0
+     }
+    },
+    "required": [
+     "sirens"
+    ],
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "french_website_siren_mentions_legales",
+   "title": "French Website SIREN API",
+   "actorId": "dYIxdUB9DpalhzDaj",
+   "description": "Find French business identifiers in website legal notices. Runs the public Apify Actor atesen-software/french-website-siren-mentions-legales on YOUR Apify account; Apify bills up to $0.005 per result (pay-per-event). Set a small result limit first.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "websites": {
+      "type": "array",
+      "description": "One per line: a domain (pennylane.com), a URL (https://www.payfit.com/fr/) or a sub-site. Duplicates are removed. Use 'Bulk edit' to paste a whole column.",
+      "items": {
+       "type": "string"
+      }
+     },
+     "enrichWithSirene": {
+      "type": "boolean",
+      "description": "Verify each SIREN found against the official Recherche d'entreprises API (INSEE SIRENE + RNE) and add the registered legal name, address, NAF code, headcount range, size category, latest revenue and the computed VAT number.",
+      "default": true
+     },
+     "maxPagesPerSite": {
+      "type": "integer",
+      "description": "Homepage + the most likely legal pages (mentions légales, informations légales, CGV, à propos, contact). The crawl stops early as soon as a legal page with a SIREN is found.",
+      "default": 6,
+      "minimum": 1,
+      "maximum": 15
+     },
+     "maxConcurrency": {
+      "type": "integer",
+      "description": "How many websites are processed at the same time. Each website is crawled politely, one page per second.",
+      "default": 3,
+      "minimum": 1,
+      "maximum": 10
+     },
+     "respectRobotsTxt": {
+      "type": "boolean",
+      "description": "Skip pages that the website's robots.txt disallows.",
+      "default": true
+     }
+    },
+    "required": [
+     "websites"
+    ],
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "sec_edgar_company_data",
+   "title": "SEC EDGAR Company Data API",
+   "actorId": "5zIe411hmn68LsxYM",
+   "description": "Retrieve official SEC filing metadata and selected US-GAAP fact observations for a company by CIK or ticker. The request supplies a User-Agent with an organization name and contact email for the SEC. Each saved result is charged by the Actor; status and error rows are free. Runs the public Apify Actor atesen-software/sec-edgar-company-data on YOUR Apify account; Apify bills up to $0.0015 per result (pay-per-event). Set a small result limit first.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "cik": {
+      "type": "string",
+      "description": "1–10 digits, optional CIK prefix. Supply exactly one of cik or ticker."
+     },
+     "ticker": {
+      "type": "string",
+      "description": "Resolved using SEC company_tickers.json. Omit when supplying cik."
+     },
+     "userAgent": {
+      "type": "string",
+      "description": "Required organization name and actual contact email. Sent to SEC only, never included in result rows. Example: Your Organization your-real-contact@your-domain.tld",
+      "minLength": 8,
+      "maxLength": 256
+     },
+     "forms": {
+      "type": "array",
+      "description": "Exact SEC form names, such as 10-K, 10-Q, 8-K. Empty means all. Applies to filings and facts.",
+      "default": [],
+      "items": {
+       "type": "string"
+      }
+     },
+     "startDate": {
+      "type": "string",
+      "description": "Inclusive YYYY-MM-DD filing date, for filings and facts."
+     },
+     "endDate": {
+      "type": "string",
+      "description": "Inclusive YYYY-MM-DD filing date, for filings and facts."
+     },
+     "includeFilings": {
+      "type": "boolean",
+      "description": "Return one metadata row per accession number.",
+      "default": true
+     },
+     "maxFilings": {
+      "type": "integer",
+      "description": "Per-run filing row cap.",
+      "default": 100,
+      "minimum": 1,
+      "maximum": 1000
+     },
+     "includeOlderFilings": {
+      "type": "boolean",
+      "description": "Read SEC historical pages only when recent filings do not fill the limit.",
+      "default": false
+     },
+     "maxOlderPages": {
+      "type": "integer",
+      "description": "Bound archive downloads, in addition to the recent submissions request.",
+      "default": 3,
+      "minimum": 0,
+      "maximum": 10
+     },
+     "includeFacts": {
+      "type": "boolean",
+      "description": "Read selected companyfacts observations. One row per concept/unit/period/accession/value.",
+      "default": false
+     },
+     "concepts": {
+      "type": "array",
+      "description": "Case-sensitive concept names without namespace, maximum 20.",
+      "default": [
+       "Assets",
+       "NetIncomeLoss",
+       "Revenues"
+      ],
+      "items": {
+       "type": "string"
+      }
+     },
+     "yearlyOnly": {
+      "type": "boolean",
+      "description": "FY observations in annual forms; duration facts must cover at least 300 days. Instant facts retained.",
+      "default": false
+     },
+     "maxFacts": {
+      "type": "integer",
+      "description": "Newest filed observations across selected concepts; maximum 1000.",
+      "default": 100,
+      "minimum": 1,
+      "maximum": 1000
+     }
+    },
+    "required": [
+     "userAgent"
+    ],
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "trademark_phrase_risk_check",
+   "title": "USPTO Trademark Phrase Check API",
+   "actorId": "KU9fJeenTfIoMymlN",
+   "description": "Check slogans and brand ideas against live USPTO trademarks. Returns a clear, low, medium or high risk verdict per phrase with the conflicting marks, classes and status. Screening aid, not legal advice. Each checked phrase is charged by the Actor; phrases that could not be checked are free. Runs the public Apify Actor atesen-software/trademark-phrase-risk-check on YOUR Apify account; Apify bills up to $0.05 per result (pay-per-event). Set a small result limit first.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "phrases": {
+      "type": "array",
+      "description": "Slogans, product names or brand ideas, one per line, up to 1,000 per run. Example: Cat Dad, Just do it, Mama Bear. Duplicates are checked once.",
+      "items": {
+       "type": "string"
+      }
+     },
+     "classes": {
+      "type": "array",
+      "description": "USPTO international classes your product falls into. A live exact match in one of these classes is rated high risk; the same match in another class is rated medium. Leave empty to treat every class the same. Class 25 is clothing, 21 mugs and housewares, 9 phone cases, 16 posters and stickers, 18 bags, 20 pillows and fu",
+      "default": [
+       "25"
+      ],
+      "items": {
+       "type": "string",
+       "enum": [
+        "9",
+        "14",
+        "16",
+        "18",
+        "20",
+        "21",
+        "24",
+        "25",
+        "26",
+        "28",
+        "35",
+        "41"
+       ]
+      }
+     },
+     "matchMode": {
+      "type": "string",
+      "description": "Exact and similar also looks for near spellings and marks with the same words (one extra search per phrase). Exact checks the phrase itself only.",
+      "default": "exact-and-similar",
+      "enum": [
+       "exact-and-similar",
+       "exact"
+      ]
+     },
+     "includeDead": {
+      "type": "boolean",
+      "description": "Also list abandoned and cancelled marks. They never raise the verdict above low.",
+      "default": false
+     },
+     "maxMatchesPerPhrase": {
+      "type": "integer",
+      "description": "How many conflicting marks to list for each phrase, most serious first.",
+      "default": 10,
+      "minimum": 1,
+      "maximum": 50
+     },
+     "includeIndividualOwners": {
+      "type": "boolean",
+      "description": "Off by default: when the owner is a private person, the name is withheld and only the owner type is shown. Company names are always shown.",
+      "default": false
+     }
+    },
+    "required": [
+     "phrases"
+    ],
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "website_email_contact_finder",
+   "title": "Website Contact Finder API",
+   "actorId": "o3sAkSkceFXwFjJ9k",
+   "description": "Extract published business contact details from websites. Runs the public Apify Actor atesen-software/website-email-contact-finder on YOUR Apify account; Apify bills up to $0.005 per result (pay-per-event). Set a small result limit first.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "websites": {
+      "type": "array",
+      "description": "Domains or URLs of the companies, one per line (\"acme.com\", \"https://www.acme.de/kontakt\"). Each website is crawled once: duplicates are skipped and not charged.",
+      "items": {
+       "type": "string"
+      }
+     },
+     "startUrls": {
+      "type": "array",
+      "description": "Same as Websites, in the request-list format used by other contact scrapers, so you can reuse existing inputs.",
+      "items": {
+       "type": "object",
+       "properties": {
+        "url": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "url"
+       ],
+       "additionalProperties": true
+      }
+     },
+     "datasetUrlField": {
+      "type": "string",
+      "description": "Field that contains the website, if it is not website / url / domain."
+     },
+     "maxPagesPerSite": {
+      "type": "integer",
+      "description": "Home page plus the best contact, imprint, about and legal pages (detected in 15+ languages). 6 is enough for most companies. The price is per website, not per page.",
+      "default": 6,
+      "minimum": 1,
+      "maximum": 30
+     },
+     "maxSites": {
+      "type": "integer",
+      "description": "Stop after this many websites (0 = no limit). Useful for a quick test on a big dataset.",
+      "default": 0,
+      "minimum": 0
+     },
+     "verifyEmailDomains": {
+      "type": "boolean",
+      "description": "Drop emails whose domain cannot receive mail (no MX/A record). Removes typos and fake addresses.",
+      "default": true
+     },
+     "onlySameDomainEmails": {
+      "type": "boolean",
+      "description": "Keep only emails like info@acme.com for acme.com (drops gmail.com, agency and partner addresses).",
+      "default": false
+     },
+     "includePhonesFromText": {
+      "type": "boolean",
+      "description": "Besides tel: links and structured data, also return numbers written in the page text (validated with libphonenumber). Each phone in phoneDetails shows its source.",
+      "default": true
+     },
+     "maxConcurrency": {
+      "type": "integer",
+      "description": "How many websites to crawl at the same time.",
+      "default": 10,
+      "minimum": 1,
+      "maximum": 30
+     }
+    },
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "career_site_jobs_api",
+   "title": "Career Site Jobs API",
+   "actorId": "uj6vPOha4C7XBEMhU",
+   "description": "Retrieve job postings from public company career sites and ATS boards. Runs the public Apify Actor atesen-software/career-site-jobs-api on YOUR Apify account; Apify bills up to $0.005 per result (pay-per-event). Set a small result limit first.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "companies": {
+      "type": "array",
+      "description": "One per line. Any of: a company website (\"stripe.com\"), a careers page URL, a job board URL (\"https://jobs.lever.co/palantir\", \"https://boards.greenhouse.io/airbnb\", \"https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite\"), an explicit \"ats:board\" pair (\"ashby:notion\", \"workable:huggingface\", \"smartrecruiters:B",
+      "items": {
+       "type": "string"
+      }
+     },
+     "startUrls": {
+      "type": "array",
+      "description": "Same as Companies, in request-list format, if you already have URL lists from other actors.",
+      "items": {
+       "type": "object",
+       "properties": {
+        "url": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "url"
+       ],
+       "additionalProperties": true
+      }
+     },
+     "keywords": {
+      "type": "array",
+      "description": "Only jobs whose title contains at least one of these words (case-insensitive), e.g. \"engineer\", \"data\", \"sales\". Empty = all jobs.",
+      "items": {
+       "type": "string"
+      }
+     },
+     "excludeKeywords": {
+      "type": "array",
+      "description": "Skip jobs whose title contains any of these words, e.g. \"intern\", \"senior\".",
+      "items": {
+       "type": "string"
+      }
+     },
+     "locations": {
+      "type": "array",
+      "description": "Only jobs whose location contains one of these texts, e.g. \"London\", \"Berlin\", \"remote\".",
+      "items": {
+       "type": "string"
+      }
+     },
+     "countries": {
+      "type": "array",
+      "description": "Only jobs in these countries: ISO codes or names (\"US\", \"DE\", \"United Kingdom\").",
+      "items": {
+       "type": "string"
+      }
+     },
+     "workplaceTypes": {
+      "type": "array",
+      "description": "Only these workplace types. Jobs whose workplace type is not published (and not stated in the title or location) are excluded when this filter is set.",
+      "items": {
+       "type": "string",
+       "enum": [
+        "remote",
+        "hybrid",
+        "onsite"
+       ]
+      }
+     },
+     "employmentTypes": {
+      "type": "array",
+      "description": "Only these (normalised) employment types. Jobs without a published employment type are excluded when this filter is set.",
+      "items": {
+       "type": "string",
+       "enum": [
+        "full_time",
+        "part_time",
+        "contract",
+        "temporary",
+        "internship",
+        "other"
+       ]
+      }
+     },
+     "departments": {
+      "type": "array",
+      "description": "Only jobs whose department or team contains one of these texts, e.g. \"Engineering\".",
+      "items": {
+       "type": "string"
+      }
+     },
+     "postedWithinDays": {
+      "type": "integer",
+      "description": "Only jobs posted in the last N days (0 = any date).",
+      "default": 0,
+      "minimum": 0
+     },
+     "descriptionFormat": {
+      "type": "string",
+      "description": "Plain text (default), HTML, both, or none (faster, smaller output; SmartRecruiters and Workday then need no extra requests).",
+      "default": "text",
+      "enum": [
+       "text",
+       "html",
+       "both",
+       "none"
+      ]
+     },
+     "dedupeSimilarJobs": {
+      "type": "boolean",
+      "description": "Some companies post the same job several times (same title and location). Keep only one.",
+      "default": true
+     },
+     "maxJobsPerCompany": {
+      "type": "integer",
+      "description": "Newest first (0 = no limit).",
+      "default": 0,
+      "minimum": 0
+     },
+     "maxJobs": {
+      "type": "integer",
+      "description": "Stop after this many jobs (0 = no limit).",
+      "default": 0,
+      "minimum": 0
+     }
+    },
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "workday_jobs_scraper",
+   "title": "Workday Jobs API",
+   "actorId": "NyUZCdyox5V56us7c",
+   "description": "Retrieve job postings from public Workday career boards. Runs the public Apify Actor atesen-software/workday-jobs-scraper on YOUR Apify account; Apify bills up to $0.001 per result (pay-per-event). Set a small result limit first.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "companies": {
+      "type": "array",
+      "description": "One per line. Any of: a Workday career site URL (\"https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite\"), \"workday:intel\" (the career site is found automatically), a company website or careers page that links to Workday (\"adobe.com\"), or a company name. Companies on Greenhouse, Lever, Ashby, Workable, SmartRec",
+      "items": {
+       "type": "string"
+      }
+     },
+     "startUrls": {
+      "type": "array",
+      "description": "Same as Companies, in request-list format, if you already have URL lists from other actors.",
+      "items": {
+       "type": "object",
+       "properties": {
+        "url": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "url"
+       ],
+       "additionalProperties": true
+      }
+     },
+     "keywords": {
+      "type": "array",
+      "description": "Only jobs whose title contains at least one of these words (case-insensitive), e.g. \"engineer\", \"data\", \"sales\". Empty = all jobs.",
+      "items": {
+       "type": "string"
+      }
+     },
+     "excludeKeywords": {
+      "type": "array",
+      "description": "Skip jobs whose title contains any of these words, e.g. \"intern\", \"senior\".",
+      "items": {
+       "type": "string"
+      }
+     },
+     "locations": {
+      "type": "array",
+      "description": "Only jobs whose location contains one of these texts, e.g. \"London\", \"Berlin\", \"remote\".",
+      "items": {
+       "type": "string"
+      }
+     },
+     "countries": {
+      "type": "array",
+      "description": "Only jobs in these countries: ISO codes or names (\"US\", \"DE\", \"United Kingdom\").",
+      "items": {
+       "type": "string"
+      }
+     },
+     "workplaceTypes": {
+      "type": "array",
+      "description": "Only these workplace types. Jobs whose workplace type is not published (and not stated in the title or location) are excluded when this filter is set.",
+      "items": {
+       "type": "string",
+       "enum": [
+        "remote",
+        "hybrid",
+        "onsite"
+       ]
+      }
+     },
+     "employmentTypes": {
+      "type": "array",
+      "description": "Only these (normalised) employment types. Jobs without a published employment type are excluded when this filter is set.",
+      "items": {
+       "type": "string",
+       "enum": [
+        "full_time",
+        "part_time",
+        "contract",
+        "temporary",
+        "internship",
+        "other"
+       ]
+      }
+     },
+     "departments": {
+      "type": "array",
+      "description": "Only jobs whose department or team contains one of these texts, e.g. \"Engineering\".",
+      "items": {
+       "type": "string"
+      }
+     },
+     "postedWithinDays": {
+      "type": "integer",
+      "description": "Only jobs posted in the last N days (0 = any date).",
+      "default": 0,
+      "minimum": 0
+     },
+     "descriptionFormat": {
+      "type": "string",
+      "description": "Plain text (default), HTML, both, or none (faster, smaller output; SmartRecruiters and Workday then need no extra requests).",
+      "default": "text",
+      "enum": [
+       "text",
+       "html",
+       "both",
+       "none"
+      ]
+     },
+     "dedupeSimilarJobs": {
+      "type": "boolean",
+      "description": "Some companies post the same job several times (same title and location). Keep only one.",
+      "default": true
+     },
+     "maxJobsPerCompany": {
+      "type": "integer",
+      "description": "Newest first (0 = no limit).",
+      "default": 0,
+      "minimum": 0
+     },
+     "maxJobs": {
+      "type": "integer",
+      "description": "Stop after this many jobs (0 = no limit).",
+      "default": 0,
+      "minimum": 0
+     }
+    },
+    "additionalProperties": false
+   }
+  }
+ ]
+}

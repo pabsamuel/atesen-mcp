@@ -1,0 +1,35 @@
+{
+  "name": "atesen-company-data-mcp",
+  "version": "0.1.0",
+  "description": "French company registry data, US SEC filings, trademark phrase checks, website contacts and public job postings.",
+  "type": "module",
+  "bin": {
+    "atesen-company-data-mcp": "server.mjs"
+  },
+  "files": [
+    "server.mjs",
+    "tools.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "license": "MIT",
+  "author": "Atesen Software <support@atesensoftware.com>",
+  "homepage": "https://atesensoftware.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pabsamuel/atesen-mcp.git",
+    "directory": "servers/company-data"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "apify",
+    "scraper",
+    "company",
+    "data"
+  ],
+  "mcpName": "io.github.pabsamuel/atesen-company-data-mcp"
+}

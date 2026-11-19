@@ -1,0 +1,35 @@
+{
+  "name": "atesen-web-data-mcp",
+  "version": "0.1.0",
+  "description": "URL to Markdown, site tech stack, WHOIS/RDAP, SEO audit, RSS, Hacker News, app store and Hugging Face data.",
+  "type": "module",
+  "bin": {
+    "atesen-web-data-mcp": "server.mjs"
+  },
+  "files": [
+    "server.mjs",
+    "tools.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "license": "MIT",
+  "author": "Atesen Software <support@atesensoftware.com>",
+  "homepage": "https://atesensoftware.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pabsamuel/atesen-mcp.git",
+    "directory": "servers/web-data"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "apify",
+    "scraper",
+    "web",
+    "data"
+  ],
+  "mcpName": "io.github.pabsamuel/atesen-web-data-mcp"
+}

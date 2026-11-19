@@ -1,0 +1,1007 @@
+{
+ "serverName": "atesen-web-data-mcp",
+ "title": "Atesen Web and Developer Data",
+ "version": "0.1.0",
+ "instructions": "URL to Markdown, site tech stack, WHOIS/RDAP, SEO audit, RSS, Hacker News, app store and Hugging Face data. Each tool runs a public Apify Actor on the caller's own Apify account (APIFY_TOKEN). Start with a small result limit; Apify bills per result.",
+ "tools": [
+  {
+   "name": "url_to_markdown_rag",
+   "title": "URL to Markdown API",
+   "actorId": "9M8DXF6mhREKS4St5",
+   "description": "Convert web pages, PDFs and sitemaps to Markdown for retrieval workflows. Runs the public Apify Actor atesen-software/url-to-markdown-rag on YOUR Apify account; Apify bills up to $0.0012 per result (pay-per-event). Set a small result limit first.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "startUrls": {
+      "type": "array",
+      "description": "Pages, PDFs or website start URLs. Plain domains such as example.com work too. With crawl mode \"Single pages\" every URL is converted on its own; the other modes treat each URL as the start of a crawl.",
+      "items": {
+       "type": "object",
+       "properties": {
+        "url": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "url"
+       ],
+       "additionalProperties": true
+      }
+     },
+     "crawlMode": {
+      "type": "string",
+      "description": "Single pages: convert only the given URLs. Sitemap: read robots.txt/sitemap.xml and convert the pages under each start URL. Follow links: crawl links from the start URL. Sitemap + links: both, best coverage for docs sites.",
+      "default": "single",
+      "enum": [
+       "single",
+       "sitemap",
+       "crawl",
+       "sitemap+crawl"
+      ]
+     },
+     "maxPages": {
+      "type": "integer",
+      "description": "Stop after this many converted pages (charged rows). Default: 100 when crawling, 1000 for single pages.",
+      "minimum": 1,
+      "maximum": 100000
+     },
+     "maxDepth": {
+      "type": "integer",
+      "description": "How many clicks away from the start URL to follow links (Follow links modes only).",
+      "default": 3,
+      "minimum": 0,
+      "maximum": 20
+     },
+     "crawlScope": {
+      "type": "string",
+      "description": "Which URLs a crawl may visit. Path: only URLs under the start URL (e.g. /docs/...). Host: the whole host. Domain: the host and its subdomains.",
+      "default": "path",
+      "enum": [
+       "path",
+       "host",
+       "domain"
+      ]
+     },
+     "includeUrlPatterns": {
+      "type": "array",
+      "description": "Optional. Globs (https://example.com/blog/**), /regex/ or plain text. A crawled URL must match one of them.",
+      "items": {
+       "type": "string"
+      }
+     },
+     "excludeUrlPatterns": {
+      "type": "array",
+      "description": "Optional. Globs, /regex/ or plain text, e.g. /tag/ or **/login*.",
+      "items": {
+       "type": "string"
+      }
+     },
+     "respectRobotsTxt": {
+      "type": "boolean",
+      "description": "Skip crawled URLs that robots.txt disallows (free status row). URLs you list yourself are always fetched.",
+      "default": true
+     },
+     "chunkSize": {
+      "type": "integer",
+      "description": "Split each page into RAG chunks of at most this many tokens (cl100k, the OpenAI tokenizer). Chunks follow headings, paragraphs and sentences; tables keep their header row. 0 = no chunking.",
+      "default": 512,
+      "minimum": 0,
+      "maximum": 8000
+     },
+     "chunkOverlap": {
+      "type": "integer",
+      "description": "Repeat up to this many tokens of trailing paragraphs at the start of the next chunk.",
+      "default": 50,
+      "minimum": 0,
+      "maximum": 1000
+     },
+     "chunkOutput": {
+      "type": "string",
+      "description": "Inline: chunks array inside each page row. Rows: one extra dataset row per chunk (free), ready for vector DB import. Both.",
+      "default": "inline",
+      "enum": [
+       "inline",
+       "rows",
+       "both"
+      ]
+     },
+     "outputFormats": {
+      "type": "array",
+      "description": "Markdown is always the main output. Add plain text and/or the cleaned HTML.",
+      "default": [
+       "markdown"
+      ],
+      "items": {
+       "type": "string",
+       "enum": [
+        "markdown",
+        "text",
+        "html"
+       ]
+      }
+     },
+     "extractionMode": {
+      "type": "string",
+      "description": "Main content: readability-style article extraction that drops menus, footers, cookie banners and ads. Full page: the whole body minus navigation and boilerplate.",
+      "default": "article",
+      "enum": [
+       "article",
+       "full"
+      ]
+     },
+     "includeImages": {
+      "type": "boolean",
+      "description": "Keep ![alt](url) image references.",
+      "default": true
+     },
+     "saveLinks": {
+      "type": "boolean",
+      "description": "Add the list of absolute links found on each page.",
+      "default": false
+     },
+     "includePdfs": {
+      "type": "boolean",
+      "description": "Extract text from PDF URLs (same price per document). Off: PDFs get a free skipped status row.",
+      "default": true
+     },
+     "maxPdfPages": {
+      "type": "integer",
+      "description": "Read at most this many pages of each PDF.",
+      "default": 100,
+      "minimum": 1,
+      "maximum": 2000
+     },
+     "minContentLength": {
+      "type": "integer",
+      "description": "Pages with less text are returned as a free empty_content status row instead of a charged page (e.g. JavaScript-only apps, login walls).",
+      "default": 100,
+      "minimum": 0
+     },
+     "dedupeContent": {
+      "type": "boolean",
+      "description": "Skip pages whose Markdown is identical to a page already saved in this run (free status row). URL and canonical-URL duplicates are always skipped.",
+      "default": true
+     },
+     "maxConcurrency": {
+      "type": "integer",
+      "description": "Upper limit; it is lowered automatically for small memory sizes.",
+      "default": 10,
+      "minimum": 1,
+      "maximum": 50
+     },
+     "urls": {
+      "type": "array",
+      "description": "Same as URLs, as a plain string array.",
+      "items": {
+       "type": "string"
+      }
+     }
+    },
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "llm_dataset_builder",
+   "title": "Website Dataset Builder API",
+   "actorId": "h2WEOa9ySUHwe8ZQR",
+   "description": "Convert website content to Markdown and text chunks for retrieval workflows. Runs the public Apify Actor atesen-software/llm-dataset-builder on YOUR Apify account; Apify bills up to $0.0015 per result (pay-per-event). Set a small result limit first.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "startUrls": {
+      "type": "array",
+      "description": "Pages where the crawl starts. By default the crawl stays under the path of each start URL, so https://docs.example.com/guide/ will not leave /guide/. Only public pages are crawled and robots.txt is always respected.",
+      "items": {
+       "type": "object",
+       "properties": {
+        "url": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "url"
+       ],
+       "additionalProperties": true
+      }
+     },
+     "maxPages": {
+      "type": "integer",
+      "description": "Maximum number of pages to push to the dataset. The crawl stops as soon as this many pages have been extracted. You are charged per page pushed, so this is also your cost cap.",
+      "default": 100,
+      "minimum": 1,
+      "maximum": 1000000
+     },
+     "crawlScope": {
+      "type": "string",
+      "description": "Which links are followed. 'Under the start URL path' keeps the crawl inside the directory of each start URL (best for docs sites with several versions or languages). 'Same hostname' follows every link on the same host. 'Same domain' also follows subdomains.",
+      "default": "start-path-prefix",
+      "enum": [
+       "start-path-prefix",
+       "same-hostname",
+       "same-domain"
+      ]
+     },
+     "includeGlobs": {
+      "type": "array",
+      "description": "Optional. Only links matching at least one of these glob patterns are followed, for example https://docs.example.com/guide/**. Start URLs are always crawled.",
+      "items": {}
+     },
+     "excludeGlobs": {
+      "type": "array",
+      "description": "Optional. Links matching any of these glob patterns are never followed, for example https://docs.example.com/**/changelog/**.",
+      "items": {}
+     },
+     "maxCrawlDepth": {
+      "type": "integer",
+      "description": "How many link hops away from the start URLs the crawl may go. 0 crawls only the start URLs.",
+      "default": 20,
+      "minimum": 0,
+      "maximum": 1000
+     },
+     "chunkSize": {
+      "type": "integer",
+      "description": "Maximum size of each chunk in tokens (OpenAI cl100k_base tokenizer, a good proxy for most embedding models). Chunks follow headings, paragraphs, lists, tables and code blocks and never cut through them unless a single block is larger than this limit.",
+      "default": 800,
+      "minimum": 64,
+      "maximum": 8000
+     },
+     "chunkOverlap": {
+      "type": "integer",
+      "description": "Tokens of context repeated at the start of the next chunk, taken as whole sentences or lines from the end of the previous chunk. Code blocks and tables are never cut for overlap. Cannot exceed half of the chunk size.",
+      "default": 100,
+      "minimum": 0,
+      "maximum": 4000
+     },
+     "minWordCount": {
+      "type": "integer",
+      "description": "Pages whose main content has fewer words than this are skipped (and not charged). Useful to drop empty redirect, login or listing pages.",
+      "default": 10,
+      "minimum": 0,
+      "maximum": 100000
+     },
+     "includeLinks": {
+      "type": "boolean",
+      "description": "Keep hyperlinks as [text](absolute-url). Turn off to get plain text without URLs, which uses fewer tokens.",
+      "default": true
+     },
+     "includeImages": {
+      "type": "boolean",
+      "description": "Keep images as ![alt](absolute-url). Off by default because image links add tokens but no text for most RAG use cases.",
+      "default": false
+     },
+     "maxConcurrency": {
+      "type": "integer",
+      "description": "Maximum number of pages fetched in parallel. The crawler starts slowly and halves its speed when a site answers with HTTP 429 or 503.",
+      "default": 5,
+      "minimum": 1,
+      "maximum": 20
+     },
+     "requestDelaySecs": {
+      "type": "number",
+      "description": "Minimum pause between two requests to the same site. If robots.txt asks for a longer Crawl-delay, that value is used instead.",
+      "default": 0.5,
+      "minimum": 0,
+      "maximum": 30
+     }
+    },
+    "required": [
+     "startUrls"
+    ],
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "website_tech_stack_detector",
+   "title": "Website Tech Stack API",
+   "actorId": "KCQrUUORozUDL7l6n",
+   "description": "Identify technologies used by public websites. Runs the public Apify Actor atesen-software/website-tech-stack-detector on YOUR Apify account; Apify bills up to $0.0015 per result (pay-per-event). Set a small result limit first.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "urls": {
+      "type": "array",
+      "description": "Domains or URLs to analyse, one per line (e.g. shopify.com or https://www.example.com/shop). Thousands per run are fine.",
+      "items": {
+       "type": "string"
+      }
+     },
+     "extraPagesPerSite": {
+      "type": "integer",
+      "description": "Also scan up to this many internal pages (picked from the homepage links) to catch tools that are not on the homepage. 0 = homepage only. Same price per site.",
+      "default": 0,
+      "minimum": 0,
+      "maximum": 5
+     },
+     "checkDns": {
+      "type": "boolean",
+      "description": "Look up MX, TXT, NS and SOA records to detect email providers (Google Workspace, Microsoft 365...), DNS hosts and verified services.",
+      "default": true
+     },
+     "checkTls": {
+      "type": "boolean",
+      "description": "Read the HTTPS certificate issuer (Let's Encrypt, Cloudflare, Sectigo...).",
+      "default": true
+     },
+     "checkRobotsTxt": {
+      "type": "boolean",
+      "description": "Download robots.txt; some platforms are recognised by it.",
+      "default": true
+     },
+     "minConfidence": {
+      "type": "integer",
+      "description": "Drop detections with a lower confidence score. 0 keeps everything.",
+      "default": 0,
+      "minimum": 0,
+      "maximum": 100
+     },
+     "onlyCategories": {
+      "type": "array",
+      "description": "Optional filter, e.g. Ecommerce, CMS, Analytics, Payment processors or a technology name like Shopify. Leave empty to return everything.",
+      "items": {
+       "type": "string"
+      }
+     },
+     "includeDetails": {
+      "type": "boolean",
+      "description": "Add description, website, pricing model, CPE and SaaS/open-source flags to each technology.",
+      "default": true
+     },
+     "maxConcurrency": {
+      "type": "integer",
+      "description": "Sites analysed in parallel.",
+      "default": 8,
+      "minimum": 1,
+      "maximum": 25
+     }
+    },
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "domain_whois_rdap_lookup",
+   "title": "Domain WHOIS and RDAP API",
+   "actorId": "xAQCpmGzUdccHhdTW",
+   "description": "Look up domain registration, expiry, registrar and DNS metadata. Runs the public Apify Actor atesen-software/domain-whois-rdap-lookup on YOUR Apify account; Apify bills up to $0.0015 per result (pay-per-event). Set a small result limit first.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "domains": {
+      "type": "array",
+      "description": "Domains, URLs or email addresses, one per line: \"apify.com\", \"https://www.bbc.co.uk/news\", \"info@example.com\". Subdomains are reduced to the registered domain.",
+      "items": {
+       "type": "string"
+      }
+     },
+     "includeDns": {
+      "type": "boolean",
+      "description": "Add A/AAAA, MX, nameservers, SPF, DMARC, verification TXT records and the email provider. Also gives data for TLDs without RDAP (e.g. .de, .tr).",
+      "default": true
+     },
+     "maxConcurrency": {
+      "type": "integer",
+      "description": "How many domains are looked up at the same time.",
+      "default": 5,
+      "minimum": 1,
+      "maximum": 20
+     }
+    },
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "website_seo_audit",
+   "title": "Website SEO Audit API",
+   "actorId": "sC7t4tv1Jtyf6WnrX",
+   "description": "Crawl websites to inspect SEO metadata and broken links. Runs the public Apify Actor atesen-software/website-seo-audit on YOUR Apify account; Apify bills up to $0.0015 per result (pay-per-event). Set a small result limit first.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "startUrls": {
+      "type": "array",
+      "description": "Domains or URLs, one per line, e.g. \"example.com\" or \"https://www.example.com/blog\". Each site is crawled from its start URL. Start URLs on the same site share one crawl.",
+      "items": {
+       "type": "string"
+      }
+     },
+     "maxPagesPerSite": {
+      "type": "integer",
+      "description": "How many HTML pages to audit per site (start URL included). This is your cost control: you pay per audited page. 10 for a quick check, 50-500 for a full audit.",
+      "default": 25,
+      "minimum": 1,
+      "maximum": 10000
+     },
+     "crawl": {
+      "type": "boolean",
+      "description": "Follow internal links from the start URL. Off = audit only the start URLs (good for a list of landing pages).",
+      "default": true
+     },
+     "maxDepth": {
+      "type": "integer",
+      "description": "How many clicks away from the start URL to go.",
+      "default": 10,
+      "minimum": 0,
+      "maximum": 50
+     },
+     "checkLinks": {
+      "type": "boolean",
+      "description": "Verify the HTTP status of every link found (HEAD, then GET when HEAD is refused). Links blocked by bot protection (401/403/429) are reported as unverified, never as broken.",
+      "default": true
+     },
+     "checkExternalLinks": {
+      "type": "boolean",
+      "description": "Check links to other websites too (outbound broken links).",
+      "default": true
+     },
+     "maxLinkChecksPerSite": {
+      "type": "integer",
+      "description": "Upper limit of unique links checked per site (internal ones first). Pages audited during the crawl are known already and are not counted.",
+      "default": 500,
+      "minimum": 0,
+      "maximum": 20000
+     },
+     "checkImages": {
+      "type": "boolean",
+      "description": "Check image status and file size (broken images, images over 200 KB).",
+      "default": true
+     },
+     "maxImageChecksPerSite": {
+      "type": "integer",
+      "description": "Upper limit of unique images checked per site.",
+      "default": 200,
+      "minimum": 0,
+      "maximum": 5000
+     },
+     "respectRobotsTxt": {
+      "type": "boolean",
+      "description": "Skip pages that robots.txt disallows.",
+      "default": true
+     },
+     "includeSubdomains": {
+      "type": "boolean",
+      "description": "Also crawl subdomains (blog.example.com when starting from example.com).",
+      "default": false
+     },
+     "excludeUrlPatterns": {
+      "type": "array",
+      "description": "Skip URLs containing any of these texts (e.g. \"/tag/\", \"?sort=\"). Wrap in slashes for a regular expression: /\\/page\\/\\d+/",
+      "default": [],
+      "items": {
+       "type": "string"
+      }
+     },
+     "includeUrlPatterns": {
+      "type": "array",
+      "description": "Optional. Only follow links containing one of these texts (e.g. \"/blog/\"). Start URLs are always audited.",
+      "default": [],
+      "items": {
+       "type": "string"
+      }
+     },
+     "ignoreQueryParameters": {
+      "type": "boolean",
+      "description": "Treat example.com/a?x=1 and example.com/a as the same page. Useful for shops with filter and sort parameters.",
+      "default": false
+     },
+     "outputIssueRows": {
+      "type": "boolean",
+      "description": "Also write every issue as its own free row (type \"issue\"), handy for spreadsheets and pivot tables. The full list is always in ISSUES.csv in the key-value store.",
+      "default": false
+     },
+     "maxConcurrency": {
+      "type": "integer",
+      "description": "Pages loaded at the same time per site. Lower it for small or slow sites.",
+      "default": 4,
+      "minimum": 1,
+      "maximum": 10
+     }
+    },
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "rss_feed_reader",
+   "title": "RSS Feed Reader API",
+   "actorId": "QySlt1CGqV3SmYddi",
+   "description": "Read public RSS, Atom, RDF and JSON feeds, or find the feed of a website, and retrieve titles, links, dates, authors, summaries and categories. Each saved item is charged by the Actor; feed info and error rows are free. Runs the public Apify Actor atesen-software/rss-feed-reader on YOUR Apify account; Apify bills up to $0.0015 per result (pay-per-event). Set a small result limit first.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "feeds": {
+      "type": "array",
+      "description": "Feed URLs (RSS, Atom, RDF, JSON Feed) or plain website/blog URLs such as \"techcrunch.com\": the feed is discovered automatically. YouTube channel feeds and podcasts work too.",
+      "items": {
+       "type": "string"
+      }
+     },
+     "maxItemsPerFeed": {
+      "type": "integer",
+      "description": "Newest first as the feed lists them. 0 = everything in the feed.",
+      "default": 50,
+      "minimum": 0,
+      "maximum": 100000
+     },
+     "onlyItemsNewerThan": {
+      "type": "string",
+      "description": "A date like \"2026-01-31\" or a relative time like \"24 hours\", \"7 days\", \"1 month\"."
+     },
+     "keywords": {
+      "type": "array",
+      "description": "Optional. Keep only items whose title, summary, text or categories contain at least one of these words (not case-sensitive). Skipped items are free.",
+      "items": {
+       "type": "string"
+      }
+     },
+     "onlyNewItems": {
+      "type": "boolean",
+      "description": "Remember the items of each feed between runs (named key-value store) and output only items that were not seen before. Schedule the Actor to get a feed of new posts. Previously seen items are free.",
+      "default": false
+     },
+     "includeContent": {
+      "type": "boolean",
+      "description": "Add the full article text when the feed carries it (content:encoded / Atom content), as plain text.",
+      "default": true
+     },
+     "includeHtml": {
+      "type": "boolean",
+      "description": "Also add the original HTML content.",
+      "default": false
+     },
+     "includeFeedInfo": {
+      "type": "boolean",
+      "description": "One free row per feed: title, link, description, language, image, item count.",
+      "default": true
+     },
+     "maxConcurrency": {
+      "type": "integer",
+      "description": "How many feeds are read at the same time.",
+      "default": 5,
+      "minimum": 1,
+      "maximum": 20
+     }
+    },
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "hacker_news_search_comments",
+   "title": "Hacker News Search API",
+   "actorId": "fTI8EYejyWITBm1qz",
+   "description": "Search public Hacker News stories and comments or read the front page, with optional bounded comment expansion. Uses the official Algolia and Firebase APIs. Each saved result is charged by the Actor; status and error rows are free. Runs the public Apify Actor atesen-software/hacker-news-search-comments on YOUR Apify account; Apify bills up to $0.0015 per result (pay-per-event). Set a small result limit first.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "mode": {
+      "type": "string",
+      "description": "Query uses Algolia; frontpage uses the current Firebase topstories list.",
+      "default": "query",
+      "enum": [
+       "query",
+       "frontpage"
+      ]
+     },
+     "query": {
+      "type": "string",
+      "description": "Empty means latest/relevant records without a text filter. Must be empty in frontpage mode.",
+      "default": "",
+      "maxLength": 500
+     },
+     "itemType": {
+      "type": "string",
+      "description": "Frontpage requires story. Comment scores are not public.",
+      "default": "story",
+      "enum": [
+       "story",
+       "comment"
+      ]
+     },
+     "sort": {
+      "type": "string",
+      "description": "Applies to query mode. Frontpage preserves the live topstories order.",
+      "default": "date",
+      "enum": [
+       "date",
+       "relevance"
+      ]
+     },
+     "fromDate": {
+      "type": "string",
+      "description": "Optional inclusive UTC timestamp, e.g. 2026-01-01T00:00:00Z. Also applies to expanded comments."
+     },
+     "toDate": {
+      "type": "string",
+      "description": "Optional inclusive UTC timestamp, e.g. 2026-10-01T00:00:00Z."
+     },
+     "minScore": {
+      "type": "integer",
+      "description": "Story score threshold. Must be zero for comment search; comment scores are unavailable.",
+      "default": 0,
+      "minimum": 0,
+      "maximum": 100000
+     },
+     "maxResults": {
+      "type": "integer",
+      "description": "Combined limit for stories and comments. A free final status row is additional.",
+      "default": 3,
+      "minimum": 1,
+      "maximum": 1000
+     },
+     "maxPages": {
+      "type": "integer",
+      "description": "Query mode only. Algolia's own pagination window can be smaller.",
+      "default": 5,
+      "minimum": 1,
+      "maximum": 20
+     },
+     "pageSize": {
+      "type": "integer",
+      "description": "Query mode only.",
+      "default": 50,
+      "minimum": 1,
+      "maximum": 100
+     },
+     "maxRequests": {
+      "type": "integer",
+      "description": "Hard shared budget for search, stories, comments, and retries.",
+      "default": 200,
+      "minimum": 1,
+      "maximum": 500
+     },
+     "includeComments": {
+      "type": "boolean",
+      "description": "Retrieve Firebase comment trees for matching stories within the limits below.",
+      "default": false
+     },
+     "maxCommentsPerStory": {
+      "type": "integer",
+      "description": "Maximum comment IDs visited per story, including deleted/filtered comments. Breadth-first order.",
+      "default": 5,
+      "minimum": 0,
+      "maximum": 100
+     },
+     "maxCommentDepth": {
+      "type": "integer",
+      "description": "Top-level replies have depth 1.",
+      "default": 2,
+      "minimum": 1,
+      "maximum": 5
+     },
+     "requestDelayMs": {
+      "type": "integer",
+      "description": "Single sequential request stream; retries also obey spacing.",
+      "default": 200,
+      "minimum": 100,
+      "maximum": 5000
+     },
+     "timeoutSecs": {
+      "type": "integer",
+      "description": "Includes response body reading. Maximum two retries for transient failures.",
+      "default": 15,
+      "minimum": 1,
+      "maximum": 60
+     }
+    },
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "huggingface_model_intel",
+   "title": "Hugging Face Model Intelligence API",
+   "actorId": "1Kq0wUmP38UC8QFPt",
+   "description": "Retrieve public model metadata, declared licenses, download counts, likes and upstream trending scores. Successful model rows are charged by the Actor; error details are not billed. No inference or model-weight downloads. Runs the public Apify Actor atesen-software/huggingface-model-intel on YOUR Apify account; Apify bills up to $0.0015 per result (pay-per-event). Set a small result limit first.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "search": {
+      "type": "string",
+      "description": "Optional text matched against model names, for example `llama` or `whisper`. Leave empty to browse all models.",
+      "default": ""
+     },
+     "library": {
+      "type": "string",
+      "description": "Optional library tag, for example `transformers`, `diffusers`, `gguf`, `sentence-transformers`, `onnx`.",
+      "default": ""
+     },
+     "task": {
+      "type": "string",
+      "description": "Optional task tag, for example `text-generation`, `text-to-image`, `automatic-speech-recognition`, `sentence-similarity`.",
+      "default": ""
+     },
+     "license": {
+      "type": "string",
+      "description": "Optional license id without the `license:` prefix, for example `apache-2.0`, `mit`, `cc-by-4.0`, `llama3`.",
+      "default": ""
+     },
+     "language": {
+      "type": "string",
+      "description": "Optional language tag from the model card, for example `en`, `tr`, `de`, `zh`.",
+      "default": ""
+     },
+     "maxModels": {
+      "type": "integer",
+      "description": "Maximum number of model rows to return. Each row is billed as one result.",
+      "default": 20,
+      "minimum": 1,
+      "maximum": 10000
+     },
+     "pageSize": {
+      "type": "integer",
+      "description": "Models requested per API page (1 to 100). Usually leave at the default.",
+      "default": 20,
+      "minimum": 1,
+      "maximum": 100
+     },
+     "maxPages": {
+      "type": "integer",
+      "description": "Safety limit on API pages per run. The run stops at whichever comes first: maxModels or maxPages.",
+      "default": 10,
+      "minimum": 1,
+      "maximum": 1000
+     },
+     "sort": {
+      "type": "string",
+      "description": "Descending sort used by the Hugging Face API. `trendingScore` surfaces models that are rising right now.",
+      "default": "downloads",
+      "enum": [
+       "downloads",
+       "likes",
+       "lastModified",
+       "trendingScore"
+      ]
+     },
+     "includeCardSummary": {
+      "type": "boolean",
+      "description": "Fetch a short public README excerpt only for explicitly ungated repositories with a supported standard license declaration. Gated/unknown or unclear-rights cards are skipped; denials stop the run. Turn off for metadata only.",
+      "default": true
+     },
+     "summaryMaxChars": {
+      "type": "integer",
+      "description": "Maximum characters of the model card excerpt (100 to 2000).",
+      "default": 600,
+      "minimum": 100,
+      "maximum": 2000
+     },
+     "requestDelayMillis": {
+      "type": "integer",
+      "description": "Pause before every request to the Hugging Face API. Raise it if you see rate-limit (429) errors.",
+      "default": 500,
+      "minimum": 100,
+      "maximum": 10000
+     }
+    },
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "app_store_scraper",
+   "title": "App Store Apps API",
+   "actorId": "brO4SR9svxjcefNDz",
+   "description": "Retrieve public Apple App Store app details, ratings, prices, versions and top-chart positions by app URL, app ID, bundle ID, search term or developer. Each saved result is charged by the Actor; status and error rows are free. Runs the public Apify Actor atesen-software/app-store-scraper on YOUR Apify account; Apify bills up to $0.0015 per result (pay-per-event). Set a small result limit first.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "apps": {
+      "type": "array",
+      "description": "App Store URLs, numeric IDs (324684580) or bundle IDs (com.spotify.client). Developer URLs (/developer/.../id...) list all their apps.",
+      "items": {
+       "type": "string"
+      }
+     },
+     "searchTerms": {
+      "type": "array",
+      "description": "Find apps by keyword, e.g. \"habit tracker\".",
+      "items": {
+       "type": "string"
+      }
+     },
+     "charts": {
+      "type": "array",
+      "description": "Top free and/or top paid iPhone apps of the chosen country.",
+      "items": {
+       "type": "string",
+       "enum": [
+        "top-free",
+        "top-paid"
+       ]
+      }
+     },
+     "maxAppsPerSearch": {
+      "type": "integer",
+      "description": "Search: up to 200. Charts: up to 100.",
+      "default": 50,
+      "minimum": 1,
+      "maximum": 200
+     },
+     "country": {
+      "type": "string",
+      "description": "Two-letter store country, e.g. \"us\", \"de\", \"tr\" (an app URL with a country keeps its own)."
+     },
+     "maxConcurrency": {
+      "type": "integer",
+      "description": "Requests in parallel",
+      "default": 5,
+      "minimum": 1,
+      "maximum": 10
+     }
+    },
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "app_store_reviews_scraper",
+   "title": "App Store Reviews API",
+   "actorId": "INqhqSvLw0KZCm5Rg",
+   "description": "Retrieve public App Store reviews and ratings by country. Runs the public Apify Actor atesen-software/app-store-reviews-scraper on YOUR Apify account; Apify bills up to $0.0015 per result (pay-per-event). Set a small result limit first.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "apps": {
+      "type": "array",
+      "description": "App Store URLs (https://apps.apple.com/us/app/.../id310633997), numeric IDs (310633997) or app names (\"Duolingo\").",
+      "items": {
+       "type": "string"
+      }
+     },
+     "countries": {
+      "type": "array",
+      "description": "Two-letter App Store countries (\"us\", \"gb\", \"de\", \"tr\" ...). Apple shows up to 500 recent reviews per country, so more countries = more reviews. Use \"all\" for the 50 biggest stores. Default: the country in the URL, else \"us\".",
+      "items": {
+       "type": "string"
+      }
+     },
+     "maxReviewsPerApp": {
+      "type": "integer",
+      "description": "Across all countries. 0 = no limit.",
+      "default": 200,
+      "minimum": 0,
+      "maximum": 1000000
+     },
+     "sort": {
+      "type": "string",
+      "description": "Order of reviews.",
+      "default": "most_recent",
+      "enum": [
+       "most_recent",
+       "most_helpful"
+      ]
+     },
+     "ratings": {
+      "type": "array",
+      "description": "Optional, e.g. [\"1\", \"2\"].",
+      "items": {
+       "type": "string"
+      }
+     },
+     "onlyReviewsNewerThan": {
+      "type": "string",
+      "description": "Skip reviews older than this date."
+     },
+     "maxConcurrency": {
+      "type": "integer",
+      "description": "How many apps are scraped at the same time.",
+      "default": 3,
+      "minimum": 1,
+      "maximum": 6
+     }
+    },
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "google_play_reviews_scraper",
+   "title": "Google Play Reviews API",
+   "actorId": "9dcE83n9j2F8u4PhC",
+   "description": "Retrieve public Google Play app reviews and ratings. Runs the public Apify Actor atesen-software/google-play-reviews-scraper on YOUR Apify account; Apify bills up to $0.0015 per result (pay-per-event). Set a small result limit first.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "apps": {
+      "type": "array",
+      "description": "Package names like \"com.spotify.music\" or Google Play URLs (https://play.google.com/store/apps/details?id=...).",
+      "items": {
+       "type": "string"
+      }
+     },
+     "maxReviewsPerApp": {
+      "type": "integer",
+      "description": "0 = as many as Google Play returns.",
+      "default": 200,
+      "minimum": 0,
+      "maximum": 100000
+     },
+     "sort": {
+      "type": "string",
+      "description": "Order of reviews.",
+      "default": "newest",
+      "enum": [
+       "newest",
+       "most_relevant",
+       "rating"
+      ]
+     },
+     "ratings": {
+      "type": "array",
+      "description": "Optional, e.g. [\"1\", \"2\"] for negative reviews only.",
+      "items": {
+       "type": "string"
+      }
+     },
+     "onlyReviewsNewerThan": {
+      "type": "string",
+      "description": "Skip reviews older than this date. With sort = newest the scraper stops there."
+     },
+     "language": {
+      "type": "string",
+      "description": "Review language code: \"en\", \"de\", \"tr\", \"pt_BR\" ... Default \"en\"."
+     },
+     "country": {
+      "type": "string",
+      "description": "Two-letter Google Play country: \"us\", \"gb\", \"tr\" ... Default \"us\"."
+     },
+     "maxConcurrency": {
+      "type": "integer",
+      "description": "How many apps are scraped at the same time.",
+      "default": 2,
+      "minimum": 1,
+      "maximum": 5
+     }
+    },
+    "additionalProperties": false
+   }
+  },
+  {
+   "name": "shopify_store_products_scraper",
+   "title": "Shopify Store Products API",
+   "actorId": "qbZaYHUGaha8mXcwJ",
+   "description": "Retrieve products, prices, variants and stock from Shopify stores. Runs the public Apify Actor atesen-software/shopify-store-products-scraper on YOUR Apify account; Apify bills up to $0.0015 per result (pay-per-event). Set a small result limit first.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "stores": {
+      "type": "array",
+      "description": "Shopify store domains (\"allbirds.com\"), collection URLs (https://shop.com/collections/sale) or product URLs (https://shop.com/products/x). Custom domains work; no myshopify address needed.",
+      "items": {
+       "type": "string"
+      }
+     },
+     "maxProductsPerStore": {
+      "type": "integer",
+      "description": "0 = the whole catalogue.",
+      "default": 1000,
+      "minimum": 0,
+      "maximum": 1000000
+     },
+     "keywords": {
+      "type": "array",
+      "description": "Optional. Keep only products whose title, vendor, type or tags contain one of these words. Skipped products are free.",
+      "items": {
+       "type": "string"
+      }
+     },
+     "includeVariants": {
+      "type": "boolean",
+      "description": "Every size/colour with its own price, compare-at price, SKU, barcode and stock flag.",
+      "default": true
+     },
+     "includeDescription": {
+      "type": "boolean",
+      "description": "Product description as plain text.",
+      "default": true
+     },
+     "includeStoreInfo": {
+      "type": "boolean",
+      "description": "One free row per store: name, currency, country, myshopify domain, products found.",
+      "default": true
+     },
+     "maxConcurrency": {
+      "type": "integer",
+      "description": "How many stores are scraped at the same time.",
+      "default": 3,
+      "minimum": 1,
+      "maximum": 10
+     }
+    },
+    "additionalProperties": false
+   }
+  }
+ ]
+}

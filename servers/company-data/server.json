@@ -1,0 +1,37 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.pabsamuel/atesen-company-data-mcp",
+  "title": "Atesen Company and Jobs Data",
+  "description": "French company registry, SEC filings, trademark checks, website contacts and public job postings.",
+  "version": "0.1.0",
+  "websiteUrl": "https://atesensoftware.com",
+  "repository": {
+    "url": "https://github.com/pabsamuel/atesen-mcp",
+    "source": "github",
+    "subfolder": "servers/company-data"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "atesen-company-data-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "APIFY_TOKEN",
+          "description": "Your own Apify API token. Actor runs are billed by Apify to your account.",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "ATESEN_MAX_CHARGE_USD",
+          "description": "Maximum Apify charge per tool call in USD (default 0.25).",
+          "isRequired": false,
+          "default": "0.25"
+        }
+      ]
+    }
+  ]
+}
